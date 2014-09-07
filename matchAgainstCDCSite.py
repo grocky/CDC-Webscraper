@@ -6,8 +6,11 @@ import csv
 import requests
 import re
 from bs4 import BeautifulSoup
+import operator
 
 ADDRESS_INDEX = 1
+
+CITY_INDEX = 2
 
 def get_info_on_webpage(url):
     """Scrape the needed data from the CDC results page
@@ -38,6 +41,7 @@ def get_info_on_webpage(url):
 
     for info in info_sp:
         org_name = info.find(id=re.compile("OrgLabelsHere")).text
+        org_name = ' '.join(org_name.split())
         street = info.find(id=re.compile("Street1Label")).string
         city = info.find(id=re.compile("CityLabel")).string
         zipcode = info.find(id=re.compile("ZipCodeLabel")).string
@@ -139,8 +143,12 @@ def main():
                          if normalize_address(rec[ADDRESS_INDEX])
                          not in csv_addresses]
 
-    for record in unique_in_webpage:
-        print record
+    unique_in_webpage = sorted(unique_in_webpage,
+                               key=operator.itemgetter(CITY_INDEX))
+
+    with open("Alabama_unique.csv", "wb") as f:
+        writer = csv.writer(f)
+        writer.writerows(unique_in_webpage)
 
 if __name__ == "__main__":
     main()
