@@ -33,15 +33,20 @@ def get_info_on_webpage(url):
 
 def get_addresses_from_csv(csv_path):
     """write docstring"""
-    columns_dict = defaultdict(list)
+    with open(csv_path, 'rU') as csv_file:
+        reader = csv.reader(csv_file)
 
-    with open(csv_path, 'rb') as csv_file:
-        reader = csv.DictReader(csv_file)
-        for row in reader:
-            for (k, value) in row.items():
-                columns_dict[k].append(value)
+        header = reader.next()
+        if 'Address 1' in header:
+            address_index = header.index('Address 1')
 
-    return columns_dict['Address 1']
+        print "address index: {}".format(address_index)
+        addresses = []
+        for rec in reader:
+            addresses.append(rec[address_index])
+        # data = list(list(rec) for rec in reader) #reads csv into a list of lists
+
+    return addresses
 
 def normalize_address(address_list):
     """write docstring"""
