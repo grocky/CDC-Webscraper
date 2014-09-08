@@ -7,6 +7,9 @@ import requests
 import re
 from bs4 import BeautifulSoup
 import operator
+import logging
+
+logger = logging.getLogger(__name__)
 
 ADDRESS_INDEX = 1
 
@@ -29,6 +32,8 @@ def get_info_on_webpage(url):
         list(list): A list of list records containing
             Name, Address, City, Zip, Phone
     """
+
+    logger.info("Retrieving web page...")
     soup = BeautifulSoup(requests.get(url).text)
 
     # Clean up <br/> tags
@@ -46,7 +51,9 @@ def get_info_on_webpage(url):
         city = info.find(id=re.compile("CityLabel")).string
         zipcode = info.find(id=re.compile("ZipCodeLabel")).string
         phone_label = info.find(id=re.compile("LbPhone"))
-        phone = phone_label.parent.parent.findNext('td').text.strip()
+        phone = phone_label.parent.parent.findNext('td').text
+        phone = phone.replace('\n', '')
+        phone = re.sub(r'\(main.*', '', phone).strip()
 
         organization_info.append([org_name, street, city, zipcode, phone])
 
