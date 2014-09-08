@@ -1,6 +1,5 @@
 #!/usr/bin/env python
-""" Match addresses against the CDC
-website
+""" Match addresses against the CDC website
 """
 import csv
 import requests
