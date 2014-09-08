@@ -9,9 +9,19 @@ import operator
 import logging
 import os
 
-LOG_DIR = 'temp'
+LOG_DIR = 'temp/'
+HTML_DIR = 'html/'
+CSV_DIR = 'csv/'
+OUTPUT_DIR = 'output/'
+
+if not os.path.exists(LOG_DIR):
+    os.makedirs(LOG_DIR)
+
+if not os.path.exists(OUTPUT_DIR):
+    os.makedirs(OUTPUT_DIR)
+
 logging.basicConfig(format='%(asctime)s %(levelname)s:%(name)s: %(message)s',
-                    filename=LOG_DIR + '/melinta.log',
+                    filename=LOG_DIR + 'melinta.log',
                     filemode='w',
                     level=logging.DEBUG)
 
@@ -23,35 +33,52 @@ logging.getLogger('').addHandler(console)
 
 LOG = logging.getLogger(__name__)
 
-if not os.path.exists(LOG_DIR):
-    os.makedirs(LOG_DIR)
+# HTML List Indexes
 ADDRESS_INDEX = 1
 
 CITY_INDEX = 2
 
+# CDC URL csv Indexes
+STATE_INDEX = 0
+
+URL_INDEX = 1
+
+CDC_FILENAME = "CDC_STD_Clinics.csv"
+
 def main():
     """docstring"""
     LOG.debug('Started')
-    alabama_url = "http://hivtest.cdc.gov/Detail.aspx?id=19465&id=113040&id=12647&id=37135&id=113610&id=12651&id=112092&id=110287&id=12688&id=37132&id=12692&id=12696&id=37134&id=37133&id=22624&id=5912&id=37129&id=37126&id=626&id=30795&id=24168&id=19807&id=5092&id=12645&id=12660&id=12679&id=18631&id=12662&id=12673&id=12709&id=5044&id=12641&id=113656&id=113658&id=12663&id=12687&id=12697&id=12706&id=113657&id=12698&id=19825&id=22513&id=19824&id=12667&id=24201&id=12646&id=12666&id=12672&id=113607&id=12650&id=113611&id=12659&id=12670&id=12674&id=113612&id=12694&id=113614&id=12704&id=12707&id=19808&id=12708&id=12710&id=113608&id=22601&id=5090&id=113613&id=113609&id=113615&id=12675&id=12640&id=12695&id=3801&id=12637&id=12658&id=12668&id=12690&id=17752&id=37136&id=12643&id=12671&id=12683&id=37138&id=12648&id=37142&id=112521&id=19826&id=112517&id=37141&id=26339&id=111796&id=1789&id=15450&id=112515&id=112514&id=112520&id=23852&id=112516&id=111795&id=12699&id=19828&id=12644&id=12669&id=12678&id=12681&id=12689&id=12652&id=12700&id=12693&id=27982&id=112519&id=113067"
-    state = "Alabama"
 
-    webpage_data = get_info_on_webpage(state, alabama_url)
-    csv_addresses = get_addresses_from_csv("csv/Alabama.csv")
+    with open(HTML_DIR + CDC_FILENAME, 'rU') as csv_file:
+        LOG.info("Reading URLs from %s", HTML_DIR+CDC_FILENAME)
+        reader = csv.reader(csv_file)
 
-    LOG.info("Finding unique addresses")
-    unique_in_webpage = [rec for rec in webpage_data
-                         if normalize_address(rec[ADDRESS_INDEX])
-                         not in csv_addresses]
+        # skip the header
+        reader.next()
+        for rec in reader:
+            state = rec[STATE_INDEX]
+            url = rec[URL_INDEX]
+            LOG.info("Processing %s", state)
+            webpage_data = get_info_on_webpage(url)
+            filename = state.replace(' ', '_')
+            csv_addresses = get_addresses_from_csv(CSV_DIR + filename + ".csv")
 
-    unique_in_webpage = sorted(unique_in_webpage,
-                               key=operator.itemgetter(CITY_INDEX))
+            unique_in_webpage = [rec for rec in webpage_data
+                                 if normalize_address(rec[ADDRESS_INDEX])
+                                 not in csv_addresses]
 
-    with open("Alabama_unique.csv", "wb") as csv_f:
-        writer = csv.writer(csv_f)
-        writer.writerows(unique_in_webpage)
+            unique_in_webpage = sorted(unique_in_webpage,
+                                       key=operator.itemgetter(CITY_INDEX))
+
+            try:
+                with open(OUTPUT_DIR + filename + ".csv", "wb") as csv_f:
+                    writer = csv.writer(csv_f)
+                    writer.writerows(unique_in_webpage)
+            except UnicodeEncodeError as error:
+                print "UnicodeEncode Error"
     LOG.debug('Finished')
 
-def get_info_on_webpage(state, url):
+def get_info_on_webpage(url):
     """Scrape the needed data from the CDC results page
 
     Look for the following fields:
@@ -68,8 +95,6 @@ def get_info_on_webpage(state, url):
         list(list): A list of list records containing
             Name, Address, City, Zip, Phone
     """
-
-    LOG.info("Retrieving web page for %s", state)
     soup = BeautifulSoup(requests.get(url).text)
 
     # Clean up <br/> tags
