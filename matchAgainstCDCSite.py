@@ -8,6 +8,7 @@ from bs4 import BeautifulSoup
 import operator
 import logging
 import os
+import codecs, cStringIO
 
 LOG_DIR = 'temp/'
 HTML_DIR = 'html/'
@@ -45,13 +46,53 @@ URL_INDEX = 1
 
 CDC_FILENAME = "CDC_STD_Clinics.csv"
 
+
+class UTF8Recoder:
+    """docstring"""
+    def __init__(self, f, encoding):
+        self.reader = codecs.getreader(encoding)(f)
+    def __iter__(self):
+        return self
+    def next(self):
+        return self.reader.next().encode("utf-8")
+
+class UnicodeReader:
+    """docstring"""
+    def __init__(self, f, dialect=csv.excel, encoding="utf-8-sig", **kwds):
+        f = UTF8Recoder(f, encoding)
+        self.reader = csv.reader(f, dialect=dialect, **kwds)
+    def next(self):
+        row = self.reader.next()
+        return [unicode(s, "utf-8") for s in row]
+    def __iter__(self):
+        return self
+
+class UnicodeWriter:
+    """docstring"""
+    def __init__(self, f, dialect=csv.excel, encoding="utf-8-sig", **kwds):
+        self.queue = cStringIO.StringIO()
+        self.writer = csv.writer(self.queue, dialect=dialect, **kwds)
+        self.stream = f
+        self.encoder = codecs.getincrementalencoder(encoding)()
+    def writerow(self, row):
+        self.writer.writerow([s.encode("utf-8") for s in row])
+        data = self.queue.getvalue()
+        data = data.decode("utf-8")
+        data = self.encoder.encode(data)
+        self.stream.write(data)
+        self.queue.truncate(0)
+
+    def writerows(self, rows):
+        for row in rows:
+            self.writerow(row)
+
 def main():
     """docstring"""
     LOG.debug('Started')
 
     with open(HTML_DIR + CDC_FILENAME, 'rU') as csv_file:
         LOG.info("Reading URLs from %s", HTML_DIR+CDC_FILENAME)
-        reader = csv.reader(csv_file)
+        reader = UnicodeReader(csv_file)
 
         # skip the header
         reader.next()
@@ -72,7 +113,7 @@ def main():
 
             try:
                 with open(OUTPUT_DIR + filename + ".csv", "wb") as csv_f:
-                    writer = csv.writer(csv_f)
+                    writer = UnicodeWriter(csv_f)
                     writer.writerows(unique_in_webpage)
             except UnicodeEncodeError as error:
                 print "UnicodeEncode Error"
@@ -136,7 +177,7 @@ def get_addresses_from_csv(csv_path):
     LOG.debug("Extracting addresses from csv path: %s", csv_path)
 
     with open(csv_path, 'rU') as csv_file:
-        reader = csv.reader(csv_file)
+        reader = UnicodeReader(csv_file)
 
         header = reader.next()
         if 'Address 1' in header:
