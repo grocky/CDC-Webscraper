@@ -1,3 +1,7 @@
+#!/usr/bin/env python
+""" 
+This code was copied from https://docs.python.org/2.7/library/csv.html#examples
+"""
 import csv, codecs, cStringIO
 
 class UTF8Recoder:
