@@ -1,10 +1,10 @@
 #!/usr/bin/env python
-""" 
+"""
 This code was copied from https://docs.python.org/2.7/library/csv.html#examples
 """
 import csv, codecs, cStringIO
 
-class UTF8Recoder:
+class UTF8Recorder:
     """
     Iterator that reads an encoded stream and reencodes the input to UTF-8
     """
@@ -24,7 +24,7 @@ class UnicodeReader:
     """
 
     def __init__(self, f, dialect=csv.excel, encoding="utf-8", **kwds):
-        f = UTF8Recoder(f, encoding)
+        f = UTF8Recorder(f, encoding)
         self.reader = csv.reader(f, dialect=dialect, **kwds)
 
     def next(self):
