@@ -62,10 +62,15 @@ def main():
         reader.next()
         for rec in reader:
             state = rec[STATE_INDEX]
+            filename = state.replace(' ', '_')
+
             url = rec[URL_INDEX]
             LOG.info("Processing %s", state)
+
+            # retrieve the webpage data
             webpage_data = get_info_on_webpage(url)
-            filename = state.replace(' ', '_')
+
+            # get the addresses from the local csv files
             csv_addresses = get_addresses_from_csv(CSV_DIR + filename + ".csv")
 
             unique_in_webpage = [rec for rec in webpage_data
